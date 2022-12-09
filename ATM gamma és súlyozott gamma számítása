@@ -1,0 +1,196 @@
+########################################################### ATM és Súlyozott gamma számítása ######################################################################
+
+import warnings
+warnings.filterwarnings('ignore')
+from math import log, sqrt, pi, exp
+from scipy.stats import norm
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+import math as math
+import os
+import datetime
+from datetime import datetime
+from scipy.optimize import minimize_scalar 
+import scipy
+import plotly
+import plotly.express as px
+#-------------------------------------------- moneyness számítása
+def moneyness_calculations_and_short(gamma_df):
+    gamma_df["moneyness"]=gamma_df["K"]/gamma_df["SP"]
+    gamma_df["atmoney"]=abs(gamma_df["moneyness"]-1)
+    gamma_df["atmoney1"]=1-(1-gamma_df["moneyness"])**2
+    gamma_df=gamma_df.sort_values(by=['date'])
+    return(gamma_df)
+#------------------------------------------- Egyszerű gamma idősor kiválasztása K és type (put / call) alapján
+def simple_gamma(gamma_df,K,tau,type):
+    selected=gamma_df.loc[gamma_df['tau'] == tau].loc[gamma_df['type'] == type].loc[gamma_df['K'] == K].reset_index(drop=True)
+    return(selected) 
+#---------------------------------------------- ATM gamma függvény
+def at_money_gamma(gamma_df,tau,type):
+    at_money_gamma= pd.DataFrame(columns=list(gamma_df.columns))
+    gamma_tau=gamma_df.loc[gamma_df['tau'] == tau].loc[gamma_df['type'] == type].reset_index(drop=True)
+    for day in gamma_tau["date"].unique():
+        daly_values=gamma_tau.loc[gamma_tau['date'] == day].reset_index(drop=True)
+        at_money_gamma.loc[len(at_money_gamma)]=daly_values.iloc[np.where((daly_values['atmoney']==daly_values['atmoney'].min()))[0][0]]
+    return(at_money_gamma)
+#------------------------------------------- Súlyozott gamma függvény
+def weighted_gamma2(gamma_df,tau,type):
+    weighted_gamma_df= pd.DataFrame(columns=["SP","gamma","date"])
+    gamma_tau=gamma_df.loc[gamma_df['tau'] == tau].loc[gamma_df['type'] == type].reset_index(drop=True)
+    for day in gamma_tau["date"].unique():
+        daly_values=gamma_tau.loc[gamma_tau['date'] == day].reset_index(drop=True)
+        weighted_gamma = (daly_values['atmoney1'] * daly_values['gamma']).sum()
+        weighted_gamma_df.loc[len(weighted_gamma_df)]=[daly_values["SP"].iloc[0].item(),weighted_gamma,day]
+    return(weighted_gamma_df)
+ #---------------------------------------- Adatok beolvasása
+ path="C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_2022/python_2_out"
+os.chdir(path)
+path2="C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_v2/OUT_v2/jo/Örök/final_v3.xlsx"  # forward_final_v3
+gamma_df = pd.read_excel(path2, sheet_name=0 )
+gamma_df['date'] = gamma_df['date'].astype('datetime64[ns]')
+gamma_df=gamma_df.sort_values(by=['date'])
+#-------------------------------------------- Moneyness számítása valós adatokon
+gamma_df=moneyness_calculations_and_short(gamma_df)
+#--------------------------------------------- Egyszerű gamma idősor 
+
+# -------  szerződés kiválasztás 
+selected_type="call"
+selected_tau=7
+
+# -------  adatok szűrése
+df1=simple_gamma(gamma_df,K=4000,tau=selected_tau,type=selected_type)
+
+# ------- Mentés excel fileba
+df1.to_excel(str("simple"+str(selected_type)+str(selected_tau)+".xlsx"),sheet_name='Sheet_name_1')
+
+# ------- valós árak vizualizálása
+df1[["date","real_last","real_bid","real_ask"]].set_index("date").plot()
+
+# ------- becsült árak vizualizálása
+df1[["date","BS_price","k_bid","k_ask"]].set_index("date").plot()
+
+# ------- becsült spread és valós spread összehasonlítása
+df1["valós_spread"]=df1["real_ask"]-df1["real_bid"]
+df1["becsült_spread"]=df1["k_ask"]-df1["k_bid"]
+df1[["date","valós_spread","becsült_spread"]].iloc[1:].set_index("date").plot()
+
+#-------- MAPE számítása
+def mape(actual, pred): 
+    actual, pred = np.array(actual), np.array(pred)
+    return np.mean(np.abs((actual - pred) / actual)) * 100
+mape(df1["valós_spread"], df1["becsült_spread"])
+
+# ------- becsült spread és valós spread adatok mentése
+df1.to_excel(str("estimated_spread"+str(selected_type)+str(selected_tau)+".xlsx"),sheet_name='Sheet_name_1')
+
+#------- Egyszerű gamma és SP500 vizualizálása
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+ax1.set_xlabel('Dates')
+ax1.set_ylabel('SP500 ár', color=color)
+ax1.plot(df1["date"], df1["SP"], color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+
+ax2 = ax1.twinx() 
+
+color = 'tab:blue'
+ax2.set_ylabel('gamma', color=color)  
+ax2.plot(df1["date"], df1["gamma"], color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+fig.tight_layout() 
+plt.show()
+
+#--------------------------------------------- ATM gamma idősor 
+df2=at_money_gamma(gamma_df,tau=selected_tau,type=selected_type)
+
+#------- Adatok mentése
+
+df2.to_excel(str("atmoney"+str(selected_type)+str(selected_tau)+".xlsx"),sheet_name='Sheet_name_1')
+
+#------- ATM gamma és SP500 vizualizálása
+fig1, ax1 = plt.subplots()
+
+color = 'tab:red'
+ax1.set_xlabel('Dates')
+ax1.set_ylabel('SP500 ár', color=color)
+ax1.plot(df2["date"], df2["SP"], color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+
+ax2 = ax1.twinx()  
+
+color = 'tab:blue'
+ax2.set_ylabel('gamma', color=color)  
+ax2.plot(df2["date"], df2["gamma"], color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+fig1.tight_layout()  
+plt.show()
+
+#--------------------------------------------- Súlyozott gamma idősor 
+
+#------- Idősor számítása
+df4=weighted_gamma2(gamma_df,tau=selected_tau,type=selected_type)
+
+#------- Adatok mentése
+df4.to_excel(str("w2"+str(selected_type)+str(selected_tau)+".xlsx"),sheet_name='Sheet_name_1')
+
+#-------------- Súlyozott gamma és SP500 vizualizálása
+fig, ax1 = plt.subplots()
+
+color = 'tab:red'
+ax1.set_xlabel('Dates')
+ax1.set_ylabel('SP500 ár', color=color)
+ax1.plot(df4["date"], df4["SP"], color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+
+ax2 = ax1.twinx()  
+
+color = 'tab:blue'
+ax2.set_ylabel('gamma', color=color)  
+ax2.plot(df4["date"], df4["gamma"], color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+fig.tight_layout()  
+plt.show()
+
+#------------------------------------------- Összes súlyozott call / put gamma idősor számítása eltérő tau értékek mellet és vizualizálása
+selected_type="call" # beállítható put
+tau=[1,7,14,28]
+k=0
+for selected_tau in tau:
+    if k==0:
+        result=weighted_gamma2(gamma_df,tau=selected_tau,type=selected_type)[["date","gamma"]]
+        k=k+1
+    else:
+        result[str(selected_tau)]=""
+        df=weighted_gamma2(gamma_df,tau=selected_tau,type=selected_type)
+        result[str(selected_tau)]=df["gamma"]
+result.columns =["date","tau1","tau7","tau14","tau28"]
+result.set_index("date").plot()
+
+#--------- Adatok mentése
+result["SP"]=df["SP"]
+result.to_excel(str("all_w"+str(selected_type)+".xlsx"),sheet_name='Sheet_name_1')
+
+
+#------------------------------------------- Összes ATM call / put gamma idősor számítása eltérő tau értékek mellet és vizualizálása
+selected_type="put"
+tau=[1,7,14,28]
+k=0
+for selected_tau in tau:
+    if k==0:
+        result=at_money_gamma(gamma_df,tau=selected_tau,type=selected_type)[["date","gamma"]]
+        k=k+1
+    else:
+        result[str(selected_tau)]=""
+        df=at_money_gamma(gamma_df,tau=selected_tau,type=selected_type)
+        result[str(selected_tau)]=df["gamma"]
+result.columns =["date","tau1","tau7","tau14","tau28"]
+result.set_index("date").plot()
+
+#--------- Adatok mentése
+result["SP"]=df["SP"]
+result.to_excel(str("all_ATM"+str(selected_type)+".xlsx"),sheet_name='Sheet_name_1')
