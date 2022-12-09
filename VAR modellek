@@ -1,0 +1,964 @@
+library(MLmetrics)
+library(ggplot2)
+library(mFilter)
+library(ggpubr)
+library(normtest)
+library(fpp2)
+library(openxlsx)
+library(huxtable)
+library(stats)
+library(strucchange)
+library(car)
+library(lmtest)
+library(psych)
+library(aTSA)
+library(pracma)
+library(tseries)
+library(urca)
+library(zoo)
+library(dplyr)
+library(stargazer)
+library("gridExtra")
+library(vars)
+library(aod)
+library(frequencyConnectedness)
+library(readxl)
+library(tidyr)
+#----------------------------------------------------------------------------------------------------- ATM
+#-------------------------------------------------------------------------------- CALL
+#-------------------------------------- Adat tisztítás
+folder<-"C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_2022/python_2_out"
+setwd(folder)
+ATM_call <-read_excel("all_ATMcall.xlsx", sheet = 1)
+ATM_call<-as.data.frame(ATM_call)
+ATM_call$date<-as.Date(ATM_call$date)
+ATM_call= drop_na(ATM_call)
+#-------------------------------------- Stacionaritás vizsgálata
+adf.test(ATM_call$SP) 
+adf.test(ATM_call$tau1) 
+adf.test(ATM_call$tau7)  
+adf.test(ATM_call$tau14)  
+adf.test(ATM_call$tau28) 
+#------------------------------------- Differenciázás
+ATM_call$SP<- c(NA, diff(ATM_call$SP))
+ATM_call$tau7<- c(NA, diff(ATM_call$tau7))
+ATM_call$tau14<- c(NA, diff(ATM_call$tau14))
+ATM_call$tau28<- c(NA, diff(ATM_call$tau28))
+ATM_call <- drop_na(ATM_call)
+#-------------------------------------- Stacionaritás vizsgálata
+adf.test(ATM_call$SP) 
+adf.test(ATM_call$tau1) 
+adf.test(ATM_call$tau7)  
+adf.test(ATM_call$tau14)  
+adf.test(ATM_call$tau28) 
+
+#------------------------------------ VAR modell
+
+#------------- tau1
+
+
+#lag select
+
+VARselect(ATM_call[, c("SP","tau1")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_call[,c("SP", "tau1")],p = 1,type = "const")  # !!!!
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau1)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau1),
+          Sigma=vcov(var_modell$varresult$tau1), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau1", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau7
+
+
+#lag select
+
+VARselect(ATM_call[, c("SP","tau7")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_call[,c("SP", "tau7")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau7)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau7),
+          Sigma=vcov(var_modell$varresult$tau7), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau7", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau14
+
+
+#lag select
+
+VARselect(ATM_call[, c("SP","tau14")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_call[,c("SP", "tau14")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau14)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau14),
+          Sigma=vcov(var_modell$varresult$tau14), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau14", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#------------- tau28
+
+
+#lag select
+
+VARselect(ATM_call[, c("SP","tau28")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_call[,c("SP", "tau28")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau28)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau28),
+          Sigma=vcov(var_modell$varresult$tau28), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau28", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#-------------------------------------------------------------------------------- PUT
+#-------------------------------------- Adat tisztítás
+folder<-"C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_2022/python_2_out"
+setwd(folder)
+ATM_put <-read_excel("all_ATMput.xlsx", sheet = 1)
+ATM_put<-as.data.frame(ATM_put)
+ATM_put$date<-as.Date(ATM_put$date)
+ATM_put= drop_na(ATM_put)
+#-------------------------------------- Stacionaritás vizsgálata
+adf.test(ATM_put$SP) 
+adf.test(ATM_put$tau1) 
+adf.test(ATM_put$tau7)  
+adf.test(ATM_put$tau14)  
+adf.test(ATM_put$tau28) 
+#------------------------------------- Differenciázás
+ATM_put$SP<- c(NA, diff(ATM_put$SP))
+ATM_put$tau7<- c(NA, diff(ATM_put$tau7))
+ATM_put$tau14<- c(NA, diff(ATM_put$tau14))
+ATM_put$tau28<- c(NA, diff(ATM_put$tau28))
+ATM_put <- drop_na(ATM_put)
+#------------------------------------ VAR modell
+
+#------------- tau1
+
+
+#lag select
+
+VARselect(ATM_put[, c("SP","tau1")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_put[,c("SP", "tau1")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau1)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau1),
+          Sigma=vcov(var_modell$varresult$tau1), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau1", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau7
+
+
+#lag select
+
+VARselect(ATM_put[, c("SP","tau7")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_put[,c("SP", "tau7")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau7)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau7),
+          Sigma=vcov(var_modell$varresult$tau7), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau7", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau14
+
+
+#lag select
+
+VARselect(ATM_put[, c("SP","tau14")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_put[,c("SP", "tau14")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau14)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau14),
+          Sigma=vcov(var_modell$varresult$tau14), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau14", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#------------- tau28
+
+
+#lag select
+
+VARselect(ATM_put[, c("SP","tau28")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(ATM_put[,c("SP", "tau28")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau28)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau28),
+          Sigma=vcov(var_modell$varresult$tau28), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau28", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#----------------------------------------------------------------------------------------------------- Súlyozott
+#-------------------------------------------------------------------------------- CALL
+#-------------------------------------- Adat tisztítás
+folder<-"C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_2022/python_2_out"
+setwd(folder)
+w_call <-read_excel("all_wcall.xlsx", sheet = 1)
+w_call<-as.data.frame(w_call)
+w_call$date<-as.Date(w_call$date)
+w_call= drop_na(w_call)
+#-------------------------------------- Stacionaritás vizsgálata
+adf.test(w_call$SP) 
+adf.test(w_call$tau1) 
+adf.test(w_call$tau7)  
+adf.test(w_call$tau14)  
+adf.test(w_call$tau28) 
+#------------------------------------- Differenciázás
+w_call$SP<- c(NA, diff(w_call$SP))
+w_call$tau7<- c(NA, diff(w_call$tau7))
+w_call$tau14<- c(NA, diff(w_call$tau14))
+w_call$tau28<- c(NA, diff(w_call$tau28))
+w_call <- drop_na(w_call)
+#------------------------------------ VAR modell
+
+#------------- tau1
+
+
+#lag select
+
+VARselect(w_call[, c("SP","tau1")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_call[,c("SP", "tau1")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau1)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau1),
+          Sigma=vcov(var_modell$varresult$tau1), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau1", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau7
+
+
+#lag select
+
+VARselect(w_call[, c("SP","tau7")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_call[,c("SP", "tau7")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau7)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau7),
+          Sigma=vcov(var_modell$varresult$tau7), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau7", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau14
+
+
+#lag select
+
+VARselect(w_call[, c("SP","tau14")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_call[,c("SP", "tau14")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau14)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau14),
+          Sigma=vcov(var_modell$varresult$tau14), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau14", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#------------- tau28
+
+
+#lag select
+
+VARselect(w_call[, c("SP","tau28")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_call[,c("SP", "tau28")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau28)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau28),
+          Sigma=vcov(var_modell$varresult$tau28), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau28", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#-------------------------------------------------------------------------------- PUT
+#-------------------------------------- Adat tisztítás
+folder<-"C:/Users/peter/Desktop/Data_NE_TOROLD/Szakdolgozat_2022/python_2_out"
+setwd(folder)
+w_put <-read_excel("all_wput.xlsx", sheet = 1)
+w_put<-as.data.frame(w_put)
+w_put$date<-as.Date(w_put$date)
+w_put= drop_na(w_put)
+#-------------------------------------- Stacionaritás vizsgálata
+adf.test(w_put$SP) 
+adf.test(w_put$tau1) 
+adf.test(w_put$tau7)  
+adf.test(w_put$tau14)  
+adf.test(w_put$tau28) 
+#------------------------------------- Differenciázás
+w_put$SP<- c(NA, diff(w_put$SP))
+w_put$tau7<- c(NA, diff(w_put$tau7))
+w_put$tau14<- c(NA, diff(w_put$tau14))
+w_put$tau28<- c(NA, diff(w_put$tau28))
+w_put <- drop_na(w_put)
+#------------------------------------ VAR modell
+
+#------------- tau1
+
+
+#lag select
+
+VARselect(w_put[, c("SP","tau1")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_put[,c("SP", "tau1")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau1)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau1),
+          Sigma=vcov(var_modell$varresult$tau1), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau1", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau7
+
+
+#lag select
+
+VARselect(w_put[, c("SP","tau7")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_put[,c("SP", "tau7")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau7)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau7),
+          Sigma=vcov(var_modell$varresult$tau7), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau7", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+
+#------------- tau14
+
+
+#lag select
+
+VARselect(w_put[, c("SP","tau14")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_put[,c("SP", "tau14")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau14)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau14),
+          Sigma=vcov(var_modell$varresult$tau14), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau14", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
+#------------- tau28
+
+
+#lag select
+
+VARselect(w_put[, c("SP","tau28")], lag.max = 24) # -> 1 
+
+# var modell
+
+var_modell <- VAR(w_put[,c("SP", "tau28")],p = 1,type = "const")
+summary(var_modell)
+
+# sp<-gamma coeff
+coef(var_modell$varresult$SP)
+
+# Wald-F sp<-gamma 
+wald.test(b=coef(var_modell$varresult$SP),
+          Sigma=vcov(var_modell$varresult$SP), Terms=c(2))
+
+# gamma<-SP coeff
+coef(var_modell$varresult$tau28)
+
+
+# Wald-F gamma<-SP 
+wald.test(b=coef(var_modell$varresult$tau28),
+          Sigma=vcov(var_modell$varresult$tau28), Terms=c(1))
+
+
+# Portmanteau-próba
+serial.test(var_modell) 
+
+
+# Breusch–Godfrey
+var_hibatagok <- as.data.frame(resid(var_modell))
+str(var_hibatagok)
+lapply(var_hibatagok, function(i) bgtest(i ~ 1, order = 10)) 
+
+# Egységgyökök
+roots(var_modell) 
+
+# Impulzus válasz 
+plot(irf(var_modell, impulse = "tau28", response = "SP", n.ahead = 15, ortho = TRUE))
+
+# előrejelzési variancia defompozíció
+FEVD1 <- fevd(var_modell, n.ahead = 10)
+FEVD1
+plot(FEVD1)
+
+# előrejelzés
+forecast <- predict(var_modell , n.ahead = 10, ci = 0.95)
+plot(forecast)
+
